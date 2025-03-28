@@ -6,6 +6,8 @@ const helmet = require("helmet");
 const connectDB = require("./db/connect");
 
 const authRoutes = require("./routers/authRoutes");
+const boardRoutes = require("./routers/boardRoutes");
+
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -21,6 +23,8 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/boards", boardRoutes);
+
 
 // Start server
 const start = async () => {
