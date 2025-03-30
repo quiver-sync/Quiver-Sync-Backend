@@ -7,6 +7,8 @@ const connectDB = require("./db/connect");
 
 const authRoutes = require("./routers/authRoutes");
 const boardRoutes = require("./routers/boardRoutes");
+const forecastRoutes = require("./routers/forecastRoutes");
+
 
 
 const app = express();
@@ -24,6 +26,8 @@ app.use(cookieParser());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/boards", boardRoutes);
+app.use("/api/forecast", forecastRoutes);
+
 
 
 // Start server
