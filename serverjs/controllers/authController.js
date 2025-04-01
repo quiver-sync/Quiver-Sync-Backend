@@ -107,6 +107,7 @@ exports.login = async (req, res) => {
           id: user._id,
           username: user.username,
           status: user.status,
+          picture: user.picture,
         },
       });
   } catch (err) {
@@ -132,6 +133,59 @@ exports.logout = (req, res) => {
     .json({ message: "Logged out" });
 };
 
+//GetProfile
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error("Error fetching profile:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//UpdateProfile
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update allowed fields only
+    const fields = ["username", "height", "weight", "level", "picture"];
+    fields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        user[field] = req.body[field];
+      }
+    });
+
+    await user.save();
+
+    res.status(200).json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      level: user.level,
+      height: user.height,
+      weight: user.weight,
+      picture: user.picture,
+      status: user.status,
+    });
+  } catch (err) {
+    console.error("Update profile error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 // ME
 exports.getMe = (req, res) => {
   res.status(200).json({
@@ -139,19 +193,24 @@ exports.getMe = (req, res) => {
       id: req.user.id,
       username: req.user.username,
       status: req.user.status,
+      picture: req.picture,
     },
   });
 };
 
-// REFRESH TOKEN
-exports.refreshToken = (req, res) => {
+
+exports.refreshToken = async (req, res) => {
   const token = req.cookies.refreshToken;
   if (!token) return res.status(401).json({ message: "No refresh token" });
 
-  jwt.verify(token, process.env.REFRESH_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ message: "Invalid refresh token" });
+  try {
+    const decoded = jwt.verify(token, process.env.REFRESH_SECRET);
 
-    const newAccessToken = generateAccessToken({ _id: decoded.id, username: decoded.username, status: decoded.status });
+    // ✅ Fetch the user from DB using decoded.id
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const newAccessToken = generateAccessToken(user);
 
     res
       .cookie("token", newAccessToken, {
@@ -161,6 +220,20 @@ exports.refreshToken = (req, res) => {
         maxAge: 15 * 60 * 1000,
       })
       .status(200)
-      .json({ message: "Token refreshed" });
-  });
+      .json({
+        message: "Token refreshed",
+        user: {
+          id: user._id,
+          username: user.username,
+          status: user.status,
+          picture: user.picture,
+        },
+      });
+  } catch (err) {
+    console.error("Refresh error:", err.message);
+    return res.status(403).json({ message: "Invalid refresh token" });
+  }
 };
+
+
+

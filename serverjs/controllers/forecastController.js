@@ -1,5 +1,9 @@
 // controllers/forecastController.js
-const { fetchSurfForecast } = require("../services/stormglassService");
+const {
+  fetchSurfForecast,
+  fetchFiveDayForecast,
+} = require("../services/stormglassService");
+
 
 exports.getForecast = async (req, res) => {
   const { lat, lng } = req.body;
@@ -9,14 +13,13 @@ exports.getForecast = async (req, res) => {
   }
 
   try {
-    const forecast = await fetchSurfForecast(lat, lng, new Date());
-    if (!forecast) {
-      return res.status(404).json({ message: "No forecast data available" });
-    }
+    const current = await fetchSurfForecast(lat, lng, new Date());
+    const daily = await fetchFiveDayForecast(lat, lng);
 
-    res.status(200).json(forecast);
+    res.status(200).json({ current, daily });
   } catch (error) {
     console.error("Forecast error:", error.message);
     res.status(500).json({ message: "Server error while fetching forecast" });
   }
 };
+
