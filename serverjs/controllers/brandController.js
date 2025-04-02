@@ -1,8 +1,5 @@
 const Brand = require("../models/Brand");
 
-
-
-
 exports.saveBrands = async (req, res) => {
     try {
       const brandData = req.body;
@@ -34,5 +31,3 @@ exports.saveBrands = async (req, res) => {
       res.status(500).json({ message: "Server error. Could not retrieve brands." });
     }
   };
-  
-  
