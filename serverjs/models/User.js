@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   status:   { type: String, enum: ["client", "admin", "shop"], default: "client" },
   height:   { type: Number, default: null },
   weight:   { type: Number, default: null },
-  level:    { type: String, enum: ["beginner", "intermediate", "advanced"], default: null },
+  level:    { type: String, enum: ["kook", "intermediate", "pro"], default: null },
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {

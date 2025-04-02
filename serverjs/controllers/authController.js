@@ -1,6 +1,10 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const bcrypt = require("bcryptjs");
+const Brand = require("../models/Brand");
+
+
 
 // Create Access Token
 const generateAccessToken = (user) => {
@@ -150,7 +154,6 @@ exports.getProfile = async (req, res) => {
 };
 
 //UpdateProfile
-
 exports.updateProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -206,7 +209,7 @@ exports.refreshToken = async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.REFRESH_SECRET);
 
-    // ✅ Fetch the user from DB using decoded.id
+    
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -236,4 +239,97 @@ exports.refreshToken = async (req, res) => {
 };
 
 
+//Google sign in 
+
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+exports.googleSignIn = async (req, res) => {
+  const { credential } = req.body;
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        username: name.replace(/\s/g, ""), // remove spaces from name
+        email,
+        picture,
+        password: Math.random().toString(36).slice(-8), // random temp password
+      });
+    }
+
+    const token = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    res
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+        maxAge: 15 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+      .status(200)
+      .json({
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          status: user.status,
+          picture: user.picture,
+        },
+      });
+  } catch (err) {
+    console.error("Google Sign-In error:", err.message);
+    res.status(401).json({ message: "Invalid Google credentials" });
+  }
+};
+//----------------------------------------------------------------------------------------------
+
+
+exports.saveBrands = async (req, res) => {
+  try {
+    const brandData = req.body;
+
+    // Convert to [{ name, models: [] }] structure and insert
+    const formatted = Object.entries(brandData).map(([name, models]) => ({
+      name,
+      models,
+    }));
+    // Optional: clear existing brands first
+    await Brand.deleteMany();
+
+    await Brand.insertMany(formatted);
+
+    res.status(201).json({ message: "Brands saved successfully!" });
+  } catch (err) {
+    console.error("Error saving brands:", err.message);
+    res.status(500).json({ message: "Failed to save brands." });
+  }
+};
+
+
+exports.getAllBrands = async (req, res) => {
+  try {
+    const brands = await Brand.find(); 
+    res.status(200).json(brands); 
+  } catch (error) {
+    console.error("Failed to fetch brands:", error.message);
+    res.status(500).json({ message: "Server error. Could not retrieve brands." });
+  }
+};
 

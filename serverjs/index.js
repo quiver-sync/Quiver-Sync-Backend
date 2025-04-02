@@ -9,6 +9,8 @@ const authRoutes = require("./routers/authRoutes");
 const boardRoutes = require("./routers/boardRoutes");
 const forecastRoutes = require("./routers/forecastRoutes");
 const matchBoardRoutes = require("./routers/matchBoardRoutes");
+const brandsRoutes = require("./routers/brandsRoutes");
+
 
 
 
@@ -31,6 +33,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/boards", boardRoutes);
 app.use("/api/forecast", forecastRoutes);
 app.use("/api/match", matchBoardRoutes);
+app.use("/api/brands", brandsRoutes);
+
 
 
 

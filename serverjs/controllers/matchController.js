@@ -1,3 +1,5 @@
+const User = require("../models/User");
+const { findOne } = require("../models/User");
 const { getLLMPrediction } = require("../services/llmService");
 const { buildPrompt } = require("../utils/promptBuilder");
 const axios = require("axios");
@@ -6,6 +8,10 @@ exports.matchBoards = async (req, res) => {
   const { boards, forecast, user } = req.body;
 
   try {
+    const realUser = await User.findOne({ email: user.email });
+    if(realUser.height!=user.height || realUser.weight!=user.weight){
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
     const prompt = buildPrompt(boards, forecast, user);
     const matchResults = await getLLMPrediction(prompt);
 
