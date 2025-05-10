@@ -15,6 +15,10 @@ exports.getForecast = async (req, res) => {
   try {
     const current = await fetchSurfForecast(lat, lng, new Date());
     const daily = await fetchFiveDayForecast(lat, lng);
+    // console.log(daily);
+    if(current.waveHeight==null){
+      return res.status(500).json({message:"Its not a surf spot"})
+    }
 
     res.status(200).json({ current, daily });
   } catch (error) {
