@@ -1,28 +1,23 @@
+
 const Board = require('../models/Boards');
 const Rental = require('../models/Rental');
+const ActiveRental = require('../models/ActiveRental');
+
 
 exports.createRental = async (req, res) => {
   try {
     const { boardId, location, pricePerDay, availableUntil, agreementAccepted } = req.body;
 
-    // Validate inputs
     if (!boardId || !location || !pricePerDay || !availableUntil || !agreementAccepted) {
       return res.status(400).json({ message: "Missing required fields." });
     }
-    
 
-
-    // Validate board existence and ownership
     const board = await Board.findById(boardId);
-    if (!board) {
-      return res.status(404).json({ message: "Board not found." });
-    }
-    console.log("board:", board);
+    if (!board) return res.status(404).json({ message: "Board not found." });
     if (board.userId.toString() !== req.user.id) {
       return res.status(403).json({ message: "Unauthorized board access." });
     }
 
-    // Create rental
     const rental = new Rental({
       board: board._id,
       owner: req.user.id,
@@ -40,14 +35,97 @@ exports.createRental = async (req, res) => {
   }
 };
 
-
 exports.getMyRentals = async (req, res) => {
-    try {
-      const rentals = await Rental.find({ owner: req.user.id }).select("board");
-      res.status(200).json(rentals);
-    } catch (err) {
-      console.error("Failed to fetch rentals:", err);
-      res.status(500).json({ message: "Error fetching rentals." });
+  try {
+    const rentals = await Rental.find({ owner: req.user.id })
+      .populate("board")
+      .sort({ createdAt: -1 });
+    res.status(200).json(rentals);
+  } catch (err) {
+    console.error("Failed to fetch rentals:", err);
+    res.status(500).json({ message: "Error fetching rentals." });
+  }
+};
+
+exports.deleteRental = async (req, res) => {
+  try {
+    const rental = await Rental.findById(req.params.id);
+    if (!rental) return res.status(404).json({ message: "Rental not found." });
+    if (rental.owner.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized." });
     }
-  };
-  
+    await rental.deleteOne();
+    res.status(200).json({ message: "Rental canceled." });
+  } catch (err) {
+    console.error("Rental deletion error:", err);
+    res.status(500).json({ message: "Server error during rental deletion." });
+  }
+};
+
+exports.updateRental = async (req, res) => {
+  try {
+    const rental = await Rental.findById(req.params.id);
+    if (!rental) return res.status(404).json({ message: "Rental not found." });
+    if (rental.owner.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized." });
+    }
+
+    const { location, pricePerDay, availableUntil } = req.body;
+    rental.location = location || rental.location;
+    rental.pricePerDay = pricePerDay || rental.pricePerDay;
+    rental.availableUntil = availableUntil || rental.availableUntil;
+
+    await rental.save();
+    res.status(200).json({ message: "Rental updated successfully", rental });
+  } catch (err) {
+    console.error("Rental update error:", err);
+    res.status(500).json({ message: "Server error during rental update." });
+  }
+};
+
+
+exports.getAvailableRentals = async (req, res) => {
+  try {
+    const today = new Date();
+
+    // Get active rentals
+    const active = await ActiveRental.find({ status: 'active' });
+
+    // Extract rental IDs that are booked
+    const blockedRentalIds = new Set(
+      active.map(r => r.rental.toString())
+    );
+
+    // Return only available and unblocked rentals
+    const available = await Rental.find({
+      availableUntil: { $gte: today },
+      _id: { $nin: Array.from(blockedRentalIds) }
+    })
+      .populate('board')
+      .populate('owner', 'username');
+
+    res.status(200).json(available);
+  } catch (err) {
+    console.error('Error fetching rentals:', err);
+    res.status(500).json({ message: 'Failed to load rentals' });
+  }
+};
+
+
+
+exports.getRentalById = async (req, res) => {
+  try {
+    const rental = await Rental.findById(req.params.id)
+      .populate('board')
+      .populate('owner', 'username');
+
+    if (!rental) {
+      return res.status(404).json({ message: 'Rental not found' });
+    }
+
+    res.status(200).json(rental);
+  } catch (err) {
+    console.error('Failed to fetch rental:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

@@ -11,6 +11,9 @@ const forecastRoutes = require("./routers/forecastRoutes");
 const matchBoardRoutes = require("./routers/matchBoardRoutes");
 const brandsRoutes = require("./routers/brandsRoutes");
 const rentalRoutes = require("./routers/rentals");
+const rentalReq = require('./routers/rentalRequests');
+const ActiveRental = require('./routers/activeRentals')
+
 
 
 const app = express();
@@ -33,6 +36,9 @@ app.use("/api/forecast", forecastRoutes);
 app.use("/api/match", matchBoardRoutes);
 app.use("/api/brands", brandsRoutes);
 app.use("/api/rentals", rentalRoutes);
+app.use('/api/rental-requests', rentalReq);
+app.use('/api/active-rentals', ActiveRental);
+
 
 
 
