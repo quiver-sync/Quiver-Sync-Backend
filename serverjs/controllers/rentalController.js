@@ -88,26 +88,36 @@ exports.getAvailableRentals = async (req, res) => {
   try {
     const today = new Date();
 
-    // Get active rentals
-    const active = await ActiveRental.find({ status: 'active' });
+    // Get all rentals available in the future
+    const rentals = await Rental.find({
+      availableUntil: { $gte: today }
+    })
+      .populate("board")
+      .populate("owner", "username");
 
-    // Extract rental IDs that are booked
-    const blockedRentalIds = new Set(
-      active.map(r => r.rental.toString())
+    // For each rental, find its booked dates from active rentals
+    const rentalsWithBookings = await Promise.all(
+      rentals.map(async (rental) => {
+        const bookings = await ActiveRental.find({
+          rental: rental._id,
+        });
+
+        const bookedDates = bookings.map((b) => ({
+          start: b.startDate,
+          end: b.endDate,
+        }));
+
+        return {
+          ...rental.toObject(),
+          bookedDates,
+        };
+      })
     );
 
-    // Return only available and unblocked rentals
-    const available = await Rental.find({
-      availableUntil: { $gte: today },
-      _id: { $nin: Array.from(blockedRentalIds) }
-    })
-      .populate('board')
-      .populate('owner', 'username');
-
-    res.status(200).json(available);
+    res.status(200).json(rentalsWithBookings);
   } catch (err) {
-    console.error('Error fetching rentals:', err);
-    res.status(500).json({ message: 'Failed to load rentals' });
+    console.error("❌ Error fetching rentals:", err);
+    res.status(500).json({ message: "Failed to load rentals" });
   }
 };
 

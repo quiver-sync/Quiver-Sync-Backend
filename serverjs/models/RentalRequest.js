@@ -1,33 +1,43 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const RentalRequestSchema = new mongoose.Schema({
   rental: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Rental',
-    required: true
+    ref: "Rental", 
+    required: true,
+  },
+  board: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Board",
+    required: true,
   },
   renter: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User", 
+    required: true,
+  },
+  hirer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
   },
   startDate: {
     type: Date,
-    required: true
+    required: true,
   },
   endDate: {
     type: Date,
-    required: true
+    required: true,
   },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   }
 });
 
-module.exports = mongoose.model('RentalRequest', RentalRequestSchema);
+module.exports = mongoose.model("RentalRequest", RentalRequestSchema);

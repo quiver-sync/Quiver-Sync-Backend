@@ -19,7 +19,32 @@ exports.confirmRentalRequest = async (req, res) => {
     endDate: request.endDate
   });
 
-  await RentalRequest.findByIdAndDelete(requestId);
+  // await RentalRequest.findByIdAndDelete(requestId);
 
   res.status(201).json({ message: 'Rental confirmed', activeRental });
 };
+
+// controller/activeRentalController.js
+exports.getMyActiveRentals = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const rentals = await ActiveRental.find({
+      $or: [{ renter: userId }, { 'rental.owner': userId }]
+    })
+      .populate({
+        path: 'rental',
+        populate: {
+          path: 'board owner',
+          select: 'model image location username'
+        }
+      })
+      .populate('renter', 'username picture');
+
+    res.json(rentals);
+  } catch (err) {
+    console.error("❌ Error fetching active rentals:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

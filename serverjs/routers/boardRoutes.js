@@ -9,14 +9,13 @@ const {
   getBoardById,
   getMyRentedBoards,
 } = require("../controllers/boardController");
-const { route } = require("./authRoutes");
 
 
 
 
 router.use(protect);
 
-// ✅ Custom "mine" route
+
 router.get("/mine", getMyBoards);
 router.get("/getMyRentedBoards", getMyRentedBoards)
 router.get("/", getBoards);
