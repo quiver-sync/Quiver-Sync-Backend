@@ -10,6 +10,10 @@ const boardSchema = new mongoose.Schema({
   volume: { type: Number }, // in liters
   fins: { type: String },
   image: { type: String },
+  isRented: {
+    type: Boolean,
+    default: false,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Board", boardSchema);

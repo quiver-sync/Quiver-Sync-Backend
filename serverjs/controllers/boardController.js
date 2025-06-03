@@ -46,7 +46,10 @@ exports.getMyRentedBoards = async (req, res) => {
     const userId = req.user.id;
 
     // Get all rentals listed by this user
-    const rentals = await Rental.find({ owner: userId }).populate('board');
+    const rentals = await Rental.find({ owner: userId }).populate({
+      path: "board",
+      match: { isRented: true },
+    });
 
     // Filter out those where the board is missing (just in case)
     const rentedBoardsWithInfo = rentals
@@ -62,9 +65,75 @@ exports.getMyRentedBoards = async (req, res) => {
         },
       }));
 
+    // console.log("Rented Boards:", rentedBoardsWithInfo);
     res.status(200).json(rentedBoardsWithInfo);
   } catch (err) {
     console.error("Error fetching rented boards:", err);
     res.status(500).json({ message: "Failed to load rented boards." });
+  }
+};
+
+exports.updateBoardRentedStatus = async (req, res) => {
+  try {
+    const { isRented } = req.body;
+
+    if (typeof isRented !== "boolean") {
+      return res.status(400).json({ message: "`isRented` must be a boolean." });
+    }
+
+    const board = await Board.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      { isRented },
+      { new: true }
+    );
+
+    if (!board) {
+      return res.status(404).json({ message: "Board not found or unauthorized." });
+    }
+
+    res.status(200).json({message:"update succeded"});
+  } catch (err) {
+    console.error("Error updating isRented:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+
+exports.syncBoardRentalStatus = async (req, res) => {
+  try {
+    const today = new Date();
+
+    // Step 1: Find rentals that are active now
+    const activeRentals = await Rental.find({
+      agreementAccepted: true,
+      availableUntil: { $gte: today }
+    }).select("board");
+
+    const activeBoardIds = activeRentals.map(r => r.board.toString());
+
+    // Step 2: Update boards that are currently rented → isRented: true
+    await Board.updateMany(
+      { _id: { $in: activeBoardIds } },
+      { $set: { isRented: true } }
+    );
+
+    // Step 3: Update boards that are not currently rented → isRented: false
+    await Board.updateMany(
+      {
+        _id: { $nin: activeBoardIds },
+        isRented: true // only update if needed
+      },
+      { $set: { isRented: false } }
+    );
+
+    res.status(200).json({
+      message: "Board rental status synced successfully.",
+      rentedBoards: activeBoardIds
+    });
+  } catch (err) {
+    console.error("Error syncing rental status:", err);
+    res.status(500).json({ message: "Server error while syncing rentals." });
   }
 };

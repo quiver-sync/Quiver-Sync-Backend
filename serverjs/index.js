@@ -4,7 +4,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const helmet = require("helmet");
 const connectDB = require("./db/connect");
-
+require("./cronJobs/syncRentalStatus");
 const authRoutes = require("./routers/authRoutes");
 const boardRoutes = require("./routers/boardRoutes");
 const forecastRoutes = require("./routers/forecastRoutes");
@@ -44,14 +44,17 @@ app.use('/api/active-rentals', ActiveRental);
 
 
 
+console.log("👋 Index.js file loaded");
 
 // Start server
 const start = async () => {
   try {
+    console.log("got into start")
     await connectDB(process.env.MONGO_URI);
     console.log("✅ Connected to MongoDB");
     app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
   } catch (error) {
+    console.log("damn error somehow")
     console.error("❌ MongoDB connection failed", error);
     process.exit(1);
   }

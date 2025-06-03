@@ -6,7 +6,12 @@ const ActiveRentalSchema = new mongoose.Schema({
     ref: 'Rental',
     required: true
   },
-  renter: {
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  hirer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
